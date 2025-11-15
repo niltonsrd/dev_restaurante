@@ -1,173 +1,183 @@
-# 🍽️ Sistema de Cardápio com Área Administrativa
+Dev Restaurante — Sistema de Pedidos Online 🍔
 
-Este projeto é um sistema completo de cardápio online integrado com uma área administrativa protegida por senha. Ele permite que usuários acessem o cardápio, façam pedidos via WhatsApp e que administradores gerenciem produtos diretamente pelo navegador.
+Sistema web completo para restaurante, permitindo cadastro de produtos, seleção de itens no carrinho, cálculo automático de taxa de entrega por bairro, escolha de pagamento e envio do pedido para WhatsApp. Inclui painel administrativo protegido por senha para gerenciamento do cardápio.
 
----
+📌 Tecnologias utilizadas
 
-## 🚀 Funcionalidades do Sistema
+Backend: Python 3 + Flask
 
-### **🟢 Área Pública (Clientes)**
+Banco de dados: SQLite
 
-* Visualização de cardápio
-* Itens agrupados por categorias
-* Botão de adicionar/remover itens do pedido
-* Revisão do pedido em tempo real
-* Envio automático do pedido via WhatsApp
-* Exibição de forma de pagamento via PIX (com QR Code)
-* Layout responsivo
+Frontend: HTML, CSS, JavaScript
 
----
+Envio de pedidos: WhatsApp API
 
-### **🔒 Área Administrativa (Protegida)**
+Uploads: Imagens de produtos e comprovantes PIX
 
-* Login seguro com senha
-* Listagem de produtos cadastrados
-* Adicionar novos produtos
-* Editar produtos existentes
-* Excluir produtos
-* Logout que redireciona para o cardápio
-* Proteção de rotas (não acessa /admin sem login)
+Hospedagem de arquivos: static/img e static/pix_comprovantes
 
----
+🛒 Funcionalidades
+1️⃣ Cardápio e Carrinho
 
-## 🛠️ Tecnologias Utilizadas
+Produtos carregados dinamicamente do banco de dados.
 
-* **Flask (Python)** — backend e rotas
-* **SQLite** — banco de dados local
-* **HTML + CSS** — interface
-* **JavaScript** — lógicas de pedido e integração com WhatsApp
-* **qrcodeapi** — geração de QR Code PIX
+Adição, remoção e alteração de quantidade de itens no carrinho.
 
----
+Cálculo do subtotal em tempo real.
 
-## 📁 Estrutura do Projeto
+Interface responsiva e intuitiva.
 
-```
-📂 projeto/
-├── app.py
-├── database.db
-├── /static
-│   ├── /css
-│   │   └── styles.css
-│   ├── /js
-│   │   └── script.js
-│   └── /img
-├── /templates
-│   ├── index.html
-│   ├── admin_login.html
-│   ├── admin_dashboard.html
-│   └── editar_produto.html
-└── README.md
-```
+Exemplo visual:
 
----
 
-## 🔧 Configuração e Instalação
+2️⃣ Taxa de entrega
 
-### **1. Clonar o repositório**
+Cada bairro tem uma taxa configurada no backend (/api/delivery-fees).
 
-```bash
-git clone https://github.com/seu_usuario/seu_repositorio.git
-cd seu_repositorio
-```
+Seleção de bairro atualiza automaticamente:
 
-### **2. Criar ambiente virtual (opcional, recomendado)**
+Valor da taxa exibido na tela
 
-```bash
+Total do pedido (subtotal + taxa)
+
+Valor exato enviado para o backend no checkout.
+
+Exemplo visual:
+
+
+3️⃣ Métodos de pagamento
+
+Dinheiro: possibilidade de informar valor de troco.
+
+Cartão: habilita botão de checkout diretamente.
+
+PIX: upload de comprovante e geração de QR Code real.
+
+Exemplo visual:
+
+
+4️⃣ Checkout
+
+Validação de campos obrigatórios: nome, endereço, bairro, carrinho e método de pagamento.
+
+Geração automática de mensagem formatada para WhatsApp:
+
+Detalhes do cliente
+
+Itens do carrinho e subtotal
+
+Taxa de entrega
+
+Total final
+
+Comprovante PIX (se enviado)
+
+Redireciona para WhatsApp para envio do pedido.
+
+Exemplo visual do pedido no WhatsApp:
+
+🧾 Pedido - Dev Restaurante
+👤 Cliente: Douglas
+📍 Endereço: Campinas
+🏙 Bairro: Pituaçu
+📞 Contato: 71912345678
+📝 Obs: Muito molho barbecue
+
+💳 Pagamento: pix
+💠 PIX enviado ✔
+
+🍔 Itens:
+- 1x Batata Frita — R$ 15.00
+- 1x Refrigerante Lata — R$ 6.00
+- 1x Cachorro-Quente — R$ 15.90
+
+🚚 Entrega: R$ 7.00
+💰 Total: R$ 43.90
+
+📎 Comprovante PIX: <link>
+
+5️⃣ Painel Administrativo
+
+Protegido por senha (ADMIN_PASSWORD no .env ou default: admin123).
+
+Funcionalidades:
+
+Adicionar produtos (com imagem e descrição)
+
+Editar produtos
+
+Deletar produtos
+
+Logout seguro com remoção de cookie.
+
+Exemplo visual do admin:
+
+
+📂 Estrutura de Pastas
+dev_restaurante/
+│
+├─ app.py                 # Aplicação Flask
+├─ database/
+│   └─ database.db        # Banco de dados SQLite
+├─ static/
+│   ├─ img/               # Imagens de produtos
+│   └─ pix_comprovantes/  # Comprovantes PIX enviados
+├─ templates/
+│   ├─ index.html         # Página principal (cardápio)
+│   └─ admin.html         # Painel administrativo
+└─ README.md
+
+⚙️ Configurações importantes
+
+Variáveis de ambiente:
+
+ADMIN_PASSWORD → senha do painel administrativo
+
+RESTAURANT_PHONE → número de WhatsApp para envio dos pedidos (formato internacional, ex: 5571991118924)
+
+SERVER_URL → URL pública do site (opcional, usado para links de PIX)
+
+FLASK_SECRET → chave secreta do Flask (para sessões e cookies)
+
+Permissões de upload: Apenas arquivos com extensões .png, .jpg, .jpeg, .gif, .webp são permitidos.
+
+🚀 Rodando o projeto localmente
+
+Clonar o repositório:
+
+git clone <repo-url>
+cd dev_restaurante
+
+
+Criar ambiente virtual e instalar dependências:
+
 python -m venv venv
-```
+source venv/bin/activate    # Linux/Mac
+venv\Scripts\activate       # Windows
 
-### **3. Ativar ambiente virtual**
+pip install Flask
 
-* **Windows**:
 
-```bash
-venv\Scripts\activate
-```
+Executar a aplicação:
 
-* **Linux/Mac**:
-
-```bash
-source venv/bin/activate
-```
-
-### **4. Instalar dependências**
-
-```bash
-pip install flask
-```
-
-### **5. Executar o sistema**
-
-```bash
 python app.py
-```
 
-Acesse no navegador:
-**[http://127.0.0.1:5000](http://127.0.0.1:5000)**
 
----
+Acessar no navegador:
 
-## 🔐 Acesso à Área Administrativa
+http://127.0.0.1:5000/
 
-A página administrativa está localizada em:
 
-```
-/admin
-```
+Painel administrativo:
 
-A senha padrão é definida diretamente no arquivo `app.py`.
+http://127.0.0.1:5000/admin
 
-Você pode alterar assim:
+📌 Notas
 
-```python
-ADMIN_PASSWORD = "minha_nova_senha"
-```
+A taxa de entrega é configurada no backend (/api/delivery-fees) e utilizada para cálculo do total.
 
----
+Todos os uploads de PIX são salvos com nomes únicos para evitar sobrescrita.
 
-## 🧾 Banco de Dados
+Mensagem de pedido para WhatsApp é automaticamente formatada com Markdown para melhor visualização.
 
-O banco utilizado é **SQLite**, criado automaticamente caso não exista.
-
-Tabela principal: `produtos`
-
-Campos:
-
-* id (INT)
-* nome (TEXT)
-* preco (REAL)
-* categoria (TEXT)
-* imagem (TEXT)
-
----
-
-## 📌 Segurança
-
-* Rotas administrativas protegidas por sessão
-* Logout funcional
-* Dados sensíveis não ficam expostos no código JS
-* Código organizado para evitar acesso indevido
-
----
-
-## 🖼️ Layout e Experiência
-
-* Totalmente responsivo
-* Interface moderna e intuitiva
-* Painel administrativo limpo e objetivo
-* Sistema de pedidos direto pelo WhatsApp
-
----
-
-## ❤️ Autor
-
-Projeto desenvolvido para estudos em desenvolvimento web.
-
-Se quiser melhorar o projeto, fique à vontade para enviar um Pull Request!
-
----
-
-## 📞 Suporte
-
-Se precisar de ajuda, abra uma **Issue** no repositório ou me chame.
+Qualquer bairro não listado usa a taxa padrão "Outro".

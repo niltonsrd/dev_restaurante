@@ -102,6 +102,19 @@ def api_products():
     rows = cur.fetchall()
     return jsonify([dict(r) for r in rows])
 
+@app.route('/api/delivery-fees')
+def api_delivery_fees():
+    TAXAS = {
+        'Bairro da Paz': 5.00,
+        'Itapoã': 8.00,
+        'Pituaçu': 7.00,
+        'São Cristovão': 6.00,
+        'Mussurunga': 6.00,
+        'Outro': 10.00
+    }
+    return jsonify(TAXAS)
+
+
 
 # -----------------------------------
 # CHECKOUT (ENVIO PARA WHATSAPP)
@@ -109,25 +122,26 @@ def api_products():
 
 @app.route('/api/checkout', methods=['POST'])
 def api_checkout():
-    # Aceita campos enviados por FormData. Compatibiliza vários nomes (client pode usar 'bairro' ou 'customer_bairro' etc).
+    from flask import request
+    import json
+    from datetime import datetime
+
+    # -------------------------------
+    # Dados do cliente enviados pelo frontend
+    # -------------------------------
     data = request.form
 
-    # Dados do cliente (aceita múltiplas chaves)
     customer_name = data.get('customer_name') or data.get('customerName') or data.get('name') or ''
     customer_address = data.get('customer_address') or data.get('customerAddress') or ''
     customer_contact = data.get('customer_contact') or data.get('customerContact') or ''
     customer_note = data.get('customer_note') or data.get('customerNote') or ''
-    # bairros: aceitar diferentes nomes que frontend possa enviar
     customer_bairro = (data.get('customer_bairro')
                        or data.get('customerBairro')
                        or data.get('bairro')
                        or '').strip()
     payment_method = (data.get('payment_method') or data.get('paymentMethod') or '').strip()
-
     troco_para = (data.get('troco_para') or data.get('trocoPara') or '').strip()
 
-    # Carrinho pode vir como JSON string no campo 'cart'
-    import json
     cart_json = data.get('cart') or data.get('cart_json') or data.get('carrinho') or '[]'
     try:
         cart = json.loads(cart_json)
@@ -138,7 +152,7 @@ def api_checkout():
         return jsonify({'ok': False, 'error': 'Preencha todos os campos obrigatórios.'}), 400
 
     # -------------------------------
-    # TAXA DE ENTREGA POR BAIRRO (mesmos valores usados no frontend)
+    # TAXA DE ENTREGA POR BAIRRO
     # -------------------------------
     TAXAS = {
         'Bairro da Paz': 5.00,
@@ -146,13 +160,14 @@ def api_checkout():
         'Pituaçu': 7.00,
         'São Cristovão': 6.00,
         'Mussurunga': 6.00,
+        'Zona Sul': 12.00,   # Exemplo: adicione todos os bairros usados
         'Outro': 10.00
     }
 
-    # Buscar taxa de entrega. Se não houver bairro informado, adota 'Outro'.
-    delivery_fee = TAXAS.get(customer_bairro, TAXAS.get('Outro', 10.00))
+    # Se o bairro não existir no dicionário, usar 'Outro'
+    delivery_fee = TAXAS.get(customer_bairro, TAXAS['Outro'])
 
-    # Se o frontend enviar explicitamente 'delivery_tax' (por exemplo calculado no front), usar esse valor
+    # Se frontend enviar explicitamente delivery_tax, usar esse valor
     delivery_override = data.get('delivery_tax') or data.get('deliveryTax')
     if delivery_override:
         try:
@@ -161,12 +176,10 @@ def api_checkout():
             pass
 
     # -------------------------------
-    # COMPROVANTE PIX (SE HOUVER)
+    # Comprovante PIX
     # -------------------------------
-
     pix_filename = None
     pix_url = None
-    # aceitar campo 'pix_comprovante' vindo do frontend
     if (payment_method or '').lower() == "pix" and 'pix_comprovante' in request.files:
         file = request.files['pix_comprovante']
         saved = save_pix_file(file)
@@ -174,13 +187,11 @@ def api_checkout():
             pix_filename = saved
             pix_url = build_public_pix_url(saved)
         else:
-            # arquivo inválido
             return jsonify({'ok': False, 'error': 'Arquivo do comprovante inválido.'}), 400
 
     # -------------------------------
-    # MONTAGEM DA MENSAGEM
+    # Montagem da mensagem para WhatsApp
     # -------------------------------
-
     lines = []
     lines.append("🧾 *Pedido - Dev Restaurante*")
     lines.append(f"👤 Cliente: {customer_name}")
@@ -191,32 +202,27 @@ def api_checkout():
     if customer_note:
         lines.append(f"📝 Obs: {customer_note}")
 
-    # pagamento
     lines.append("")
     lines.append(f"💳 *Pagamento:* {payment_method or '—'}")
 
-    if payment_method and payment_method.lower() == "dinheiro":
-        if troco_para:
-            # tentar normalizar troco_para: pode vir como "R$ 12,34" ou "12.34" ou "1234"
-            raw = ''.join(ch for ch in troco_para if (ch.isdigit() or ch in ',.'))
-            raw = raw.replace(',', '.')
-            try:
-                troco_val = float(raw)
-                lines.append(f"Troco para: R$ {troco_val:.2f}")
-            except Exception:
-                # se não for numérico, apenas acrescenta o texto
-                lines.append(f"Troco para: {troco_para}")
+    if payment_method.lower() == "dinheiro" and troco_para:
+        # Normaliza o valor do troco
+        raw = ''.join(ch for ch in troco_para if (ch.isdigit() or ch in ',.'))
+        raw = raw.replace(',', '.')
+        try:
+            troco_val = float(raw)
+            lines.append(f"Troco para: R$ {troco_val:.2f}")
+        except Exception:
+            lines.append(f"Troco para: {troco_para}")
 
-    if payment_method and payment_method.lower() == "pix":
+    if payment_method.lower() == "pix":
         lines.append("💠 PIX enviado ✔")
 
-    # itens
     lines.append("")
     lines.append("🍔 *Itens:*")
 
     total = 0.0
     for it in cart:
-        # compatibilidade com chaves diferentes
         name = it.get('name') or it.get('nome') or 'Item'
         qty = int(it.get('qty') or it.get('qtd') or 1)
         price = float(it.get('price') or it.get('preco') or 0.0)
@@ -224,14 +230,13 @@ def api_checkout():
         total += subtotal
         lines.append(f"- {qty}x {name} — R$ {subtotal:.2f}")
 
-    # taxa de entrega
+    # Taxa de entrega
     lines.append("")
     lines.append(f"🚚 Entrega: R$ {delivery_fee:.2f}")
 
     total_final = total + delivery_fee
     lines.append(f"💰 *Total:* R$ {total_final:.2f}")
 
-    # incluir link do comprovante (se houver) — WhatsApp não aceita anexos via URL, mas aceita link
     if pix_url:
         lines.append("")
         lines.append(f"📎 Comprovante PIX: {pix_url}")
@@ -239,17 +244,17 @@ def api_checkout():
     lines.append("")
     lines.append("📨 Pedido enviado via site Dev Restaurante.")
 
-    # montar mensagem (encoding)
     text = "%0A".join(lines)
     url = f"https://api.whatsapp.com/send?phone={RESTAURANT_PHONE}&text={text}"
 
-    # retornar pix_filename e pix_url para frontend se necessário
     return jsonify({
         'ok': True,
         'whatsapp_url': url,
         'pix_file': pix_filename,
         'pix_url': pix_url
     })
+
+
 
 
 # DOWNLOAD DO COMPROVANTE PIX

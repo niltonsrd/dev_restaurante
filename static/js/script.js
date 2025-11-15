@@ -6,8 +6,8 @@ let cart = [];
 
 function loadProducts() {
   fetch("/api/products")
-    .then(r => r.json())
-    .then(products => {
+    .then((r) => r.json())
+    .then((products) => {
       const catalog = document.getElementById("catalog");
       catalog.innerHTML = "";
 
@@ -28,7 +28,9 @@ function loadProducts() {
 
             <div class="card-actions">
               <button class="btn btn-primary"
-                onclick='addToCart(${p.id}, "${p.name.replace(/"/g, '\\"')}", ${p.price}, "${p.image}")'>
+                onclick='addToCart(${p.id}, "${p.name.replace(/"/g, '\\"')}", ${
+          p.price
+        }, "${p.image}")'>
                 Adicionar
               </button>
             </div>
@@ -79,6 +81,8 @@ function renderCart() {
   });
 
   document.getElementById("cartTotal").textContent = `R$ ${total.toFixed(2)}`;
+  document.getElementById("cartTotal").dataset.subtotal = total.toFixed(2);
+
 }
 
 function changeQty(id, delta) {
@@ -113,7 +117,6 @@ const generatePixBtn = document.getElementById("generatePixBtn");
 const pixQrPreview = document.getElementById("pixQrPreview");
 
 const btnCheckout = document.getElementById("btnCheckout");
-
 
 // ocultar tudo ao carregar
 paymentCashBox.classList.add("hidden");
@@ -170,7 +173,6 @@ cashAmount.addEventListener("input", () => {
   cashAmount.value = "R$ " + v.replace(".", ",");
 });
 
-
 // liberar botão se digitou troco
 cashAmount.addEventListener("input", () => {
   if (paymentSelect.value === "dinheiro" && cashAmount.value.trim() !== "") {
@@ -185,16 +187,14 @@ pixComprovante.addEventListener("change", () => {
   }
 });
 
-
 // =======================================
 // GERAR QR CODE PIX (USANDO PAYLOAD REAL)
 // =======================================
 
 generatePixBtn.addEventListener("click", () => {
-
   const chavePix = "71991118924";
   const recebedor = "Josenilton Santos da Cruz";
-  const banco = "C6 Bank";  // <-- coloque sua chave real aqui
+  const banco = "C6 Bank"; // <-- coloque sua chave real aqui
 
   const qrUrl =
     "https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=" +
@@ -211,7 +211,36 @@ Recebedor: ${recebedor}</textarea>
   `;
 });
 
+const bairroSelect = document.getElementById("customerBairro");
+const deliveryDisplay = document.getElementById("deliveryFee"); // um span/div para mostrar a taxa
+let deliveryFees = {};
 
+// Buscar taxas do backend
+fetch("/api/delivery-fees")
+  .then(r => r.json())
+  .then(taxas => {
+    deliveryFees = taxas;
+    bairroSelect.innerHTML = '<option value="">Selecione o bairro</option>';
+    for (const [bairro, valor] of Object.entries(taxas)) {
+      const option = document.createElement("option");
+      option.value = bairro;
+      option.textContent = `${bairro} — R$ ${valor.toFixed(2)}`;
+      option.dataset.fee = valor; // <- adiciona o valor exato da taxa
+      bairroSelect.appendChild(option);
+    }
+  });
+
+// Atualizar taxa de entrega e total quando bairro muda
+bairroSelect.addEventListener("change", () => {
+  const bairro = bairroSelect.value;
+  const fee = Number(bairroSelect.selectedOptions[0].dataset.fee || 0);
+  deliveryDisplay.textContent = `Entrega: R$ ${fee.toFixed(2)}`;
+
+  // Atualizar total no carrinho
+  const cartTotal = parseFloat(document.getElementById("cartTotal").dataset.subtotal || 0);
+  const totalFinal = cartTotal + fee;
+  document.getElementById("cartTotal").textContent = `R$ ${totalFinal.toFixed(2)}`;
+});
 
 
 // =======================================
@@ -219,12 +248,13 @@ Recebedor: ${recebedor}</textarea>
 // =======================================
 
 document.getElementById("btnCheckout").addEventListener("click", function () {
-
   const name = document.getElementById("customerName").value.trim();
   const address = document.getElementById("customerAddress").value.trim();
   const contact = document.getElementById("customerContact").value.trim();
   const note = document.getElementById("customerNote").value.trim();
-  const bairro = document.getElementById("customerBairro").value;
+  const bairroSelect = document.getElementById("customerBairro");
+  const bairro = bairroSelect.value;
+  const deliveryFee = Number(bairroSelect.selectedOptions[0].dataset.fee || 0);
   const payment = paymentSelect.value;
 
   if (!name || !address) return alert("Preencha nome e endereço!");
@@ -247,7 +277,8 @@ document.getElementById("btnCheckout").addEventListener("click", function () {
   formData.append("customer_address", address);
   formData.append("customer_contact", contact);
   formData.append("customer_note", note);
-  formData.append("bairro", bairro);
+ formData.append("bairro", bairro);           // envia o nome do bairro
+formData.append("delivery_tax", deliveryFee); // envia o valor exato da entrega
   formData.append("payment_method", payment);
 
   if (payment === "dinheiro") {
@@ -261,8 +292,8 @@ document.getElementById("btnCheckout").addEventListener("click", function () {
   formData.append("cart", JSON.stringify(cart));
 
   fetch("/api/checkout", { method: "POST", body: formData })
-    .then(r => r.json())
-    .then(json => {
+    .then((r) => r.json())
+    .then((json) => {
       if (json.ok && json.whatsapp_url) {
         window.open(json.whatsapp_url, "_blank");
       } else {

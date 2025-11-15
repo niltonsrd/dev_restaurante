@@ -4,7 +4,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Dev Restaurante</title>
-    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <link
+      rel="icon"
+      href="{{ url_for('static', filename='favicon.ico') }}"
+      type="image/x-icon"
+    />
 
     <link
       rel="stylesheet"
@@ -58,14 +62,15 @@
           <input id="customerContact" placeholder="Contato (WhatsApp)" />
 
           <label for="customerBairro">Taxa de Entrega por Bairro</label>
-          <select id="customerBairro">
-            <option value="">Selecione</option>
-            <option value="Centro">Bairro da Paz — R$ 5,00</option>
-            <option value="Zona Sul">Itapoã — R$ 8,00</option>
-            <option value="Zona Norte">Pituaçu — R$ 7,00</option>
-            <option value="Zona Leste">São Cristóvão — R$ 6,00</option>
-            <option value="Zona Oeste">Mussurunga — R$ 6,00</option>
-            <option value="Outro">Outro — R$ 10,00</option>
+          <select id="customerBairro" name="bairro" required>
+            <option value="">Selecione o bairro</option>
+            <option value="Bairro da Paz" data-fee="5">Bairro da Paz</option>
+            <option value="Itapoã" data-fee="8">Itapoã</option>
+            <option value="Pituaçu" data-fee="7">Pituaçu</option>
+            <option value="São Cristovão" data-fee="6">São Cristovão</option>
+            <option value="Mussurunga" data-fee="6">Mussurunga</option>
+            <option value="Cabula" data-fee="12">Cabula</option>
+            <option value="Outro" data-fee="10">Outro</option>
           </select>
 
           <!-- ====================== MÉTODO DE PAGAMENTO ====================== -->
